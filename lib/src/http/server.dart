@@ -404,7 +404,7 @@ class Angel extends AngelBase {
 
       if (requestedUrl.isEmpty) requestedUrl = '/';
 
-      var tuple = _handlerCache.putIfAbsent(requestedUrl, () {
+      var tuple = _handlerCache.putIfAbsent('${req.method}$requestedUrl', () {
         Router r = isProduction ? (_flattened ??= flatten(this)) : this;
         var resolved =
             r.resolveAll(requestedUrl, requestedUrl, method: req.method);

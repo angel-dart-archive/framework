@@ -1,3 +1,7 @@
+# 1.0.11
+* Patched the caching bug that prevents 1.0.x from resolving the same
+path with different methods.
+
 # 1.0.10
 * Closed [#162](https://github.com/angel-dart/framework/issues/162), fixing a caching bug
 that would cause multiple requests to the same URL to fail.

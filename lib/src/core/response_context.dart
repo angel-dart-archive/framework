@@ -148,7 +148,7 @@ abstract class ResponseContext<RawResponse>
     headers['content-length'] = file.lengthSync().toString();
 
     if (!isBuffered) {
-      await file.openRead().pipe(this);
+      await file.openRead().cast<List<int>>().pipe(this);
     } else {
       buffer.add(file.readAsBytesSync());
       await close();
@@ -320,7 +320,9 @@ abstract class ResponseContext<RawResponse>
         : MediaType.parse(mimeType);
 
     if (correspondingRequest.method != 'HEAD') {
-      return this.addStream(file.openRead()).then((_) => this.close());
+      return this
+          .addStream(file.openRead().cast<List<int>>())
+          .then((_) => this.close());
     }
   }
 

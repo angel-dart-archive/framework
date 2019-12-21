@@ -102,8 +102,13 @@ abstract class RequestContext<RawRequest> {
   /// The [Stream] of incoming binary data sent from the client.
   Stream<List<int>> get body;
 
+  String _rawBodyString;
+
   /// Returns `true` if [parseBody] has been called so far.
   bool get hasParsedBody => _hasParsedBody;
+
+  /// Returns raw body as String if [parseBody] has been called with preserveRawBody=true (only works with json and x-www-form-urlencoded)
+  String get rawBodyString => _rawBodyString;
 
   /// Returns a *mutable* [Map] of the fields parsed from the request [body].
   ///
@@ -233,7 +238,8 @@ abstract class RequestContext<RawRequest> {
       deserializeBody(codec.decode, encoding: encoding);
 
   /// Manually parses the request body, if it has not already been parsed.
-  Future<void> parseBody({Encoding encoding = utf8}) async {
+  Future<void> parseBody(
+      {Encoding encoding = utf8, bool preserveRawBody = false}) async {
     if (contentType == null) {
       throw FormatException('Missing "content-type" header.');
     }
@@ -244,8 +250,13 @@ abstract class RequestContext<RawRequest> {
       if (contentType.type == 'application' && contentType.subtype == 'json') {
         _uploadedFiles = [];
 
-        var parsed = _bodyObject =
-            await encoding.decoder.bind(body).join().then(json.decode);
+        var parsed =
+            _bodyObject = await encoding.decoder.bind(body).join().then((s) {
+          if (preserveRawBody) {
+            _rawBodyString = s;
+          }
+          return s;
+        }).then(json.decode);
 
         if (parsed is Map) {
           _bodyFields = Map<String, dynamic>.from(parsed);
@@ -255,10 +266,12 @@ abstract class RequestContext<RawRequest> {
       } else if (contentType.type == 'application' &&
           contentType.subtype == 'x-www-form-urlencoded') {
         _uploadedFiles = [];
-        var parsed = await encoding.decoder
-            .bind(body)
-            .join()
-            .then((s) => Uri.splitQueryString(s, encoding: encoding));
+        var parsed = await encoding.decoder.bind(body).join().then((s) {
+          if (preserveRawBody) {
+            _rawBodyString = s;
+          }
+          return s;
+        }).then((s) => Uri.splitQueryString(s, encoding: encoding));
         _bodyFields = Map<String, dynamic>.from(parsed);
       } else if (contentType.type == 'multipart' &&
           contentType.subtype == 'form-data' &&
